@@ -18,8 +18,8 @@ import groovy.time.*
 
 definition(
   name: "Better Laundry Monitor",
-  namespace: "tierneykev",
-  author: "Kevin Tierney",
+  namespace: "gszabados",
+  author: "Kevin Tierney, updated Gabor Szabados",
   description: "Using a switch with powerMonitor capability, monitor the laundry cycle and alert when it's done.",
   category: "Green Living",
   iconUrl: "https://s3.amazonaws.com/smartthings-device-icons/Appliances/appliances8-icn.png",
@@ -43,6 +43,8 @@ section ("Send this message") {
     input "sendPushMessage", "bool", title: "Send a push notification?"
     input "speechOut", "capability.speechSynthesis", title:"Speak Via: (Speech Synthesis)",multiple: true, required: false
     input "player", "capability.musicPlayer", title:"Speak Via: (Music Player -> TTS)",multiple: true, required: false
+    input "sonos", "capability.audioNotification", title:"Speak Via: (Sonos -> TTS)",multiple: true, required: false
+    input "volume", "number", title: "Temporarily change volume", description: "0-100%", required: true 
     input "phone", "phone", title: "Send a text message to:", required: false
   }
 }
@@ -81,6 +83,7 @@ def handler(evt) {
     send(message)
     if(speechOut){speakMessage(message)}
     if(player){musicPlayerTTS(message)}
+    if(sonos){audioNotificationTTS(message)}
     atomicState.cycleOn = false
     atomicState.cycleEnd = now()
     log.trace "State: ${atomicState.cycleOn}"
@@ -105,6 +108,10 @@ speechOut.speak(msg)
 }
 private musicPlayerTTS(msg) {
 	player.playText(msg)
+}
+private audioNotificationTTS(msg) {
+	state.sound = textToSpeech(msg instanceof List ? msg[0] : msg) // not sure why this is (sometimes) needed)
+    sonos.playTrackAndResume(state.sound.uri, volume)
 }
 
 private hideOptionsSection() {
